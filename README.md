@@ -7,7 +7,7 @@ It contains dataset loaders, target model architectures, inversion models, and t
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 - **`utilis.py` — Datasets & utilities**  
   Includes loaders for **CIFAR-10 (64×64)**, **FaceScrub**, **CelebA**, **ChestX-ray**, **MNIST/EMNIST/KMNIST**, etc.  
@@ -24,7 +24,7 @@ It contains dataset loaders, target model architectures, inversion models, and t
 - **`inversion_model_packages.py` — Inversion models**  
   Implements architectures to reconstruct inputs from intermediate features:  
   - Deconvolutional decoders (`Inversion_4`)  
-  - Residual inversion networks (`InversionResNet`, variants `pv4`, `AE`)  
+  - Residual inversion networks
   - **Enhanced inversion capacity** with deeper blocks and **attention mechanisms**  
   - **Normalization & FFT-based entropy enhancement** modules to increase representation entropy and challenge reconstruction.
 
@@ -38,7 +38,7 @@ It contains dataset loaders, target model architectures, inversion models, and t
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Requirements
 - Python 3.8+
@@ -51,39 +51,21 @@ pip install -r requirements.txt
 
 ### Example: Train a Target Classifier
 ```bash
-python train_classifier.py \
-  --dataset chest --target_model cnn \
-  --epochs 300 --lr 0.01 --batch-size 128
+python train_classifier.py --dataset chest --target_model cnn --epochs 300 --lr 0.01 --batch-size 128
 ```
 
 ### Example: Train an Inversion Model
 ```bash
-python train_inversion.py \
-  --dataset mnist --target_model cnn \
-  --block_idx 2 --epochs 100 --lr 0.01
+python train_inversion.py --dataset mnist --target_model cnn --block_idx 2 --epochs 100 --lr 0.01
 ```
 
-⚠️ **Note:** The commands above are **illustrative examples**.  
+**Note:** The commands above are **illustrative examples**.  
 For **full parameter options**, please check the code directly.  
 You should modify **paths, dataset roots, and model architectures inside the `main()` function** according to your environment and experiment design.
 
 ---
 
-## 📊 Evaluation
-
-- **Classifier training:** measured by accuracy and runtime/latency.  
-- **Inversion training:** evaluated with  
-  - MSE (Mean Squared Error)  
-  - PSNR (Peak Signal-to-Noise Ratio)  
-  - Cosine Similarity  
-  - SSIM (optional)  
-
-Reconstructed samples are automatically saved under:  
-`out/{dataset}/{target_model}/{block_idx}/`
-
----
-
-## 🔒 Purpose
+## Purpose
 
 This repository is intended **for academic research only**.  
 It provides a framework for studying **partitioning strategies (“Golden Partition Zone”)** and their vulnerability to **model inversion attacks** in collaborative inference.  
