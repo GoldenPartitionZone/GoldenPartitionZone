@@ -9,24 +9,28 @@ matplotlib.use('Agg')
 from utilis import *
 
 
-def compute_mean_radius_sq(features: torch.Tensor,
-                           labels: torch.Tensor,
-                           num_classes: int) -> np.ndarray:
-    """
-    Compute class-wise R_c^2 = mean squared distance to class center.
-    features: Tensor[N, D]
-    labels:   LongTensor[N]
-    """
-    radii2 = []
+def compute_mean_radius_sq(features, labels, num_classes, normalize_dim=True, eps=1e-12):
+    z = features.view(features.size(0), -1)   # [N, D]
+    D = z.size(1)
+
+    radii2_list = []
     for c in range(num_classes):
         mask = (labels == c)
-        if mask.sum() == 0:
+        if mask.sum() < 2:
             continue
-        fc = features[mask]                  # [Nc, D]
-        mu = fc.mean(dim=0, keepdim=True)    # [1, D]
-        # squared distances, mean over class
-        radii2.append(((fc - mu)**2).sum(dim=1).mean().item())
-    return np.array(radii2)
+        zc = z[mask]
+        mu = zc.mean(dim=0, keepdim=True)
+        rc2 = ((zc - mu) ** 2).sum(dim=1).mean()  # E||z-mu||^2
+
+        if normalize_dim:
+            rc2 = rc2 / (D + eps)
+
+        radii2_list.append(rc2)
+
+    if len(radii2_list) == 0:
+        return torch.tensor([0.0], device=features.device)
+
+    return torch.stack(radii2_list)
 
 def extract_features_single_batch(loader, classifier, device, transform_amplify):
     """
@@ -66,7 +70,7 @@ def run_mean_radius(args, classifier, train_loader, transform_amplify, device):
     for idx in target_indices:
         if idx < len(all_features):
             features = all_features[idx]
-            radius_sq = compute_mean_radius_sq(features, pred_labels, args.nz)
+            radius_sq = compute_mean_radius_sq(features, pred_labels, args.nz, normalize_dim=True)
             selected_avg_radii2_oh_list.append(radius_sq.mean().item())
         else:
             print(f"Warning: Layer index {idx} is out of bounds. Skipping.")
