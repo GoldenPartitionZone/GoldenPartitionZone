@@ -630,28 +630,19 @@ def distance_correlation(x, z):
 
 
 def sample_wise_spread(z):
-    """
-    输入: z ∈ [B, C, H, W]
-    输出: z_enhanced ∈ [B, C, H, W]，增强后的特征
-    目标: 每个样本间距离尽量远
-    """
     B, C, H, W = z.shape
     z_flat = z.view(B, -1)  # B x (C*H*W)
 
-    # 1. 中心化处理（去掉偏移）
     z_mean = z_flat.mean(dim=0, keepdim=True)
     z_centered = z_flat - z_mean  # B x D
 
-    # 2. 计算样本协方差矩阵（B x B）
     sim_matrix = torch.mm(z_centered, z_centered.T)  # inner product
     norms = torch.norm(z_centered, dim=1, keepdim=True)
     cosine_sim = sim_matrix / (norms @ norms.T + 1e-8)
 
-    # 3. 负梯度方向：远离相似样本（近似反正交化）
     penalty = cosine_sim.mean(dim=1, keepdim=True)  # B x 1
-    z_spread = z_centered * (1 + penalty)  # 放大相似样本间距
+    z_spread = z_centered * (1 + penalty) 
 
-    # 4. reshape 回原始
     return z_spread.view(B, C, H, W)
 
 
@@ -666,15 +657,15 @@ class AttentionAsConv(nn.Module):
         super().__init__()
         self.dw_conv = nn.Conv2d(
             channels, channels, kernel_size=kernel_size, padding=kernel_size // 2, groups=channels, bias=False
-        )  # 深度卷积模拟 attention map
+        )  
         self.pw_conv = nn.Conv2d(
             channels, channels, kernel_size=1, bias=False
-        )  # 点卷积整合通道信息
-        self.act = nn.Sigmoid()  # 控制增强幅度
+        )  
+        self.act = nn.Sigmoid()  
 
     def forward(self, x):
         attn = self.dw_conv(x)
-        x = x * self.act(attn)  # 类似于 soft attention weighting
+        x = x * self.act(attn)  
         return self.pw_conv(x)
 
 
@@ -796,7 +787,7 @@ class DecoderWithAugmentation(nn.Module):
 
         self.deconv_block5 = nn.Sequential(
             nn.ConvTranspose2d(64, image_channels, kernel_size=3, stride=1, padding=1, bias=False),
-            nn.Sigmoid()  # 输出到 [0,1] 区间
+            nn.Sigmoid()  
         )
 
     def forward(self, z):
@@ -829,7 +820,6 @@ class DecoderWithAugmentation(nn.Module):
         #
         # grad_mag = torch.sqrt(z.pow(2).sum(dim=1, keepdim=True))
 
-        # 标准化处理（防止过大或分布偏移）
         def normalize(feat):
             mean = feat.mean(dim=[1, 2, 3], keepdim=True)
             std = feat.std(dim=[1, 2, 3], keepdim=True)
@@ -885,7 +875,7 @@ class FeatureRecomposer(nn.Module):
 
     def forward(self, x):
         # x: (B, N_tokens, token_dim)
-        img = self.proj(x.mean(dim=1))  # 聚合重构
+        img = self.proj(x.mean(dim=1)) 
         return img.view(-1, self.out_channels, self.out_size, self.out_size)
 
 
@@ -907,7 +897,6 @@ class ExplodeDecoder(nn.Module):
         return out
 
 
-# CoordConv：为输入添加位置编码
 class CoordConv(nn.Module):
     def forward(self, x):
         B, C, H, W = x.shape
@@ -915,7 +904,6 @@ class CoordConv(nn.Module):
         yy = torch.linspace(-1, 1, H).repeat(W, 1).t().unsqueeze(0).expand(B, -1, -1).unsqueeze(1).to(x.device)
         return torch.cat([x, xx, yy], dim=1)
 
-# ModulatedConv2D：可学习调制特征通道
 class ModulatedConv2D(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, style_dim):
         super().__init__()
@@ -1008,7 +996,6 @@ class DecoderForIR152(nn.Module):
         #         nn.ConvTranspose2d(ndf * 2, ndf * 2, 3, 1, 1),
         #     )
 
-        # 定义构建函数
         def deconv1():
             return nn.Sequential(
                 nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=4, stride=2, padding=1),
@@ -1055,7 +1042,6 @@ class DecoderForIR152(nn.Module):
                 nn.Sigmoid()
             )
 
-        # 定义 block_idx 对应的模块序列
         block_map = {
             3: [deconv1(), deconv6()],
             13: [deconv1(), deconv6()],
@@ -1071,7 +1057,6 @@ class DecoderForIR152(nn.Module):
 
         assert block_idx in block_map, f"Unsupported block_idx: {block_idx}"
 
-        # 构建解码网络
         self.deconv = nn.Sequential(*block_map[block_idx])
 
     def forward(self, z):
